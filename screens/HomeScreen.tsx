@@ -1,5 +1,8 @@
 import { CalendarDaysIcon, MagnifyingGlassIcon, XMarkIcon } from "react-native-heroicons/outline";
 import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { LocationType, WeatherDataType } from "../types/weather";
+import { fetchLocations, fetchWeatherForecast } from "../api/weatherApi";
+import { useCallback, useEffect, useState } from "react";
 
 import DayForecast from "../components/weatherScreen/DayForecast";
 import Loading from "../components/general/Loading";
@@ -7,17 +10,54 @@ import Locations from "../components/weatherScreen/Locations";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { backgroundColor } from "../utils/theme";
+import { debounce } from "lodash";
 import tw from "twrnc";
-import { useState } from "react";
 import { weatherImages } from "../constants/ui";
 
 const HomeScreen: React.FC = () => {
-    const [loading] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
-    const [locations] = useState([]);
-    const [weatherData] = useState({});
+    const [locations, setLocations] = useState<LocationType[]>([]);
+    const [weatherData, setWeatherData] = useState<WeatherDataType | null>(null);
 
-    const { location, current } = weatherData;
+    const handleSearch = async (searchTerm: string) => {
+        if (!searchTerm || searchTerm.length < 2) return;
+
+        const res = await fetchLocations({ cityName: searchTerm });
+        if (res.status === 200) setLocations(res.data);
+    };
+
+    const handleTextDebounce = useCallback(debounce(handleSearch, 1200), []);
+
+    const handleLocation = async (location: LocationType) => {
+        try {
+            setLoading(true);
+            setShowSearch(false);
+            setLocations([]);
+
+            const res = await fetchWeatherForecast({ cityName: location.name, days: "7" });
+            if (res.status === 200) setWeatherData(res.data);
+        } catch {
+            throw new Error("Failed to fetch weather forecast data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchMyWeatherData(); }, []);
+
+    const fetchMyWeatherData = async () => {
+        try {
+            setLoading(true);
+            const res = await fetchWeatherForecast({ cityName: "Tokyo", days: "7" });
+            if (res.status === 200) setWeatherData(res.data);
+        } catch {
+            throw new Error("Failed to fetch weather forecast data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     return (
         <View style={tw`flex-1 relative`}>
@@ -39,6 +79,7 @@ const HomeScreen: React.FC = () => {
                                     placeholder="Search city"
                                     placeholderTextColor={"lightgray"}
                                     style={tw`pl-6 h-10 pb-1 flex-1 text-base text-white`}
+                                    onChangeText={handleTextDebounce}
                                 />
                             }
 
@@ -50,53 +91,53 @@ const HomeScreen: React.FC = () => {
                             </TouchableOpacity>
                         </View>
 
-                        {locations.length > 0 && showSearch && <Locations locations={locations} />}
+                        {locations.length > 0 && showSearch && <Locations handleLocation={handleLocation} locations={locations} />}
                     </View>
 
                     <View style={tw`mx-4 flex justify-around flex-1 mb-2`}>
                         <Text style={tw`text-white text-center text-2xl font-bold`}>
-                            {location?.name},
-                            <Text style={tw`text-lg font-semibold text-gray-300`}>
-                                {location?.country}
+                            {weatherData?.location?.name} {", "}
+                            <Text style={tw`text-xl font-semibold text-gray-300`}>
+                                {weatherData?.location?.country}
                             </Text>
                         </Text>
 
                         <View style={tw`flex-row justify-center`}>
                             <Image
-                                source={weatherImages["other"]}
+                                source={weatherImages[weatherData?.current?.condition?.text as keyof typeof weatherImages || "other"]}
                                 style={tw`w-52 h-52`}
                             />
                         </View>
 
-                        <View style={tw`space-y-2`}>
+                        <View>
                             <Text style={tw`text-center font-bold text-white text-6xl ml-5`}>
-                                {current?.temp_c}&#176;
+                                {weatherData?.current?.temp_c}&#176;
                             </Text>
 
                             <Text style={tw`text-center text-white text-xl tracking-widest`}>
-                                {current?.condition?.text}
+                                {weatherData?.current?.condition?.text}
                             </Text>
                         </View>
 
 
                         <View style={tw`flex-row justify-between mx-4`}>
-                            <View style={tw`flex-row space-x-2 items-center`}>
+                            <View style={tw`flex-row items-center`}>
                                 <Image source={require("../assets/icons/wind.png")} style={tw`w-6 h-6`} />
 
                                 <Text style={tw`text-white font-semibold text-base`}>
-                                    {current?.wind_kph}km
+                                    {weatherData?.current?.wind_kph}km
                                 </Text>
                             </View>
 
-                            <View style={tw`flex-row space-x-2 items-center`}>
+                            <View style={tw`flex-row items-center`}>
                                 <Image source={require("../assets/icons/drop.png")} style={tw`w-6 h-6`} />
 
                                 <Text style={tw`text-white font-semibold text-base`}>
-                                    {current?.humidity}%
+                                    {weatherData?.current?.humidity}%
                                 </Text>
                             </View>
 
-                            <View style={tw`flex-row space-x-2 items-center`}>
+                            <View style={tw`flex-row items-center`}>
                                 <Image source={require("../assets/icons/sun.png")} style={tw`w-6 h-6`} />
 
                                 <Text style={tw`text-white font-semibold text-base`}>
@@ -106,12 +147,12 @@ const HomeScreen: React.FC = () => {
                         </View>
                     </View>
 
-                    <View style={tw`mb-2 space-y-3`}>
-                        <View style={tw`flex-row items-center mx-5 space-x-2`}>
+                    <View style={tw`mb-2`}>
+                        <View style={tw`flex-row items-center justify-center gap-2 mx-5 mb-2`}>
                             <CalendarDaysIcon size="22" color="white" />
 
                             <Text style={tw`text-white text-base`}>
-                                Daily forecast
+                                Weekly Forecast
                             </Text>
                         </View>
 

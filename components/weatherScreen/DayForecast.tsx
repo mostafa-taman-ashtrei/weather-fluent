@@ -1,15 +1,17 @@
 import { Image, ScrollView, Text, View } from "react-native";
 
+import { WeatherDataType } from "../../types/weather";
 import { backgroundColor } from "../../utils/theme";
+import { createUniqueId } from "../../utils/keys";
 import tw from "twrnc";
 import { weatherImages } from "../../constants/ui";
 
 interface DayForecastProps {
-    weatherData: any;
+    weatherData: WeatherDataType | null;
 }
 
 const DayForecast: React.FC<DayForecastProps> = ({ weatherData }) => {
-    const getDateData = (forecastDate: Date) => {
+    const getDateData = (forecastDate: string) => {
         const date = new Date(forecastDate);
         let dayName = date.toLocaleDateString("en-US", { weekday: "long" });
         dayName = dayName.split(",")[0];
@@ -23,27 +25,24 @@ const DayForecast: React.FC<DayForecastProps> = ({ weatherData }) => {
             showsHorizontalScrollIndicator={false}
         >
             {
-                weatherData?.forecast?.forecastday?.map((forecast, index) => {
-                    return (
-                        <View
-                            key={index}
-                            style={[tw`flex justify-center items-center w-24 rounded-3xl py-3 space-y-1 mr-4`, { backgroundColor: backgroundColor(0.15) }]}
-                        >
-                            <Image
-                                source={weatherImages["other"]}
-                                style={tw`w-11 h-11`}
-                            />
+                weatherData?.forecast?.forecastday?.map((forecast) => <View
+                    key={createUniqueId(5)}
+                    style={[tw`flex justify-center items-center w-36 rounded-2xl py-3 mr-2`, { backgroundColor: backgroundColor(0.15) }]}
+                >
+                    <Image
+                        source={weatherImages[forecast?.day?.condition?.text as keyof typeof weatherImages || "other"]}
+                        style={tw`w-13 h-13`}
+                    />
 
-                            <Text style={tw`text-white`}>
-                                {getDateData(forecast.date)}
-                            </Text>
+                    <Text style={tw`text-white`}>
+                        {getDateData(forecast.date)}
+                    </Text>
 
-                            <Text style={tw`text-white text-xl font-semibold`}>
-                                {forecast?.day?.avgtemp_c}&#176;
-                            </Text>
-                        </View>
-                    );
-                })
+                    <Text style={tw`text-white text-xl font-semibold`}>
+                        {forecast?.day?.avgtemp_c}&#176;
+                    </Text>
+                </View>
+                )
             }
         </ScrollView>
     );
