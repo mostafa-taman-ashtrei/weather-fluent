@@ -1,0 +1,1 @@
+export const backgroundColor = (opacity: number) => `rgba(255,255,255, ${opacity})`;
