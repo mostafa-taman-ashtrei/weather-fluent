@@ -1,20 +1,18 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import "./globals.css";
 
-export default function App() {
+import { Text, View } from "react-native";
+
+import { StatusBar } from "expo-status-bar";
+import tw from "twrnc";
+
+const App: React.FC = () => {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
+    <View style={tw`bg-gray-900 justify-center items-center text-white w-full`}>
+      <Text style={tw`text-white`}>Welcome to WeatherFluent!</Text>
       <StatusBar style="auto" />
     </View>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+
+export default App;
